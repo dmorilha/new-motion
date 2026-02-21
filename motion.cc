@@ -1,6 +1,7 @@
 #include <array>
 #include <deque>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -87,10 +88,10 @@ void MyMotion::acquire_frame(Image & frame) {
   std::array<char, 3> buffer;
   std::fstream file;
   std::stringstream file_name;
-  file_name << "./frames/frame" << (frame_number_ + 1) << ".bmp";
+  file_name << "./frames/frame-" << std::setw(4) << std::setfill('0') << (frame_number_ + 1) << ".yuv";
   std::cerr << "file name " << file_name.str() << std::endl;
   file.open(file_name.str());
-  file.seekg(0x8a);
+  file.seekg(0x8a); /* skip bitmap header */
   std::size_t read = file.readsome(buffer.data(), buffer.size());
   while (0 < read) {
     while (buffer.size() > read) {
@@ -100,22 +101,7 @@ void MyMotion::acquire_frame(Image & frame) {
     frame.insert(frame.end(), buffer.begin(), buffer.end());
     read = file.readsome(buffer.data(), buffer.size());
   }
-
-#if 0
-  int count = 0;
-  for (const int byte : frame) {
-    std::cout << std::hex << byte;
-    if (1 == count % 2) { 
-      std::cout << " ";
-    }
-    if (15 == count % 16) {
-      std::cout << std::endl;
-    }
-    ++count;
-  }
-#endif
-    
-  frame_number_ = (frame_number_ + 1) % 5;
+  frame_number_ = (frame_number_ + 1) % 465;
 }
 
 int main() {
@@ -128,14 +114,16 @@ int main() {
     context.push_frame(std::move(frame));
   }
 
-  for (int i = 1; 5 > i; ++i) {
+  for (int i = 1; 1000 > i; ++i) {
     Image frame = Image();
     motion->acquire_frame(frame);
+#if 0
     context.push_frame(std::move(frame));
     const uint64_t motion_detected = motion->detect_motion(context);
     if (0 < motion_detected) {
       std::cout << "motion detected " << motion_detected << std::endl;
     }
+#endif
   }
   return 0;
 }
